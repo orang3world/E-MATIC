@@ -169,7 +169,7 @@ function reportBuilding() {
   }
   // IF NOT EXIST CREATE SSREPORT
   if (!ssAccess(systemDate, '')) {
-    sp.insertSheet(systemDate, 4)
+    sp.insertSheet(systemDate, 5).hideSheet()
   } else {
     // DATA DELETE SSREPORT
     ssAccess(systemDate, '').clearContents
