@@ -114,7 +114,7 @@ function reportBuilding() {
   var htmlMessage = ssTemplateValues[2][1]
 
   // DATA ITERATION
-  report.push(['APELLIDO', 'NOMBRE', 'E-MAIL', 'IMPORTE', 'MENSAJE-TEXTO', 'MENSAJE-HTML'])
+  report.push(['NOMBRE', 'APELLIDO', 'E-MAIL', 'IMPORTE', 'MENSAJE-TEXTO', 'MENSAJE-HTML'])
 
   for (let i = 0; i < ssValues.length; i++) {
 
@@ -163,7 +163,7 @@ function reportBuilding() {
     //var emailVerification, sending, error
     // TEXT MESSAGE
 
-    var reportRow = [lastName, firstName, email, amount, body, htmlBody]
+    var reportRow = [firstName, lastName, email, amount, body, htmlBody]
     report.push(reportRow)
 
   }
@@ -240,3 +240,5 @@ function emailValidation(email) {
 
 }
 */
+
+
