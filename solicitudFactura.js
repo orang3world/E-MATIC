@@ -1,8 +1,33 @@
+/*
+Notas generales: 
+  Este escript trabaja sobre una hojas de calculo actualizada manualmente.
+  Luego se procesa esta informacion cargando una hoja de registro.
+  Se agregan 
+    una columna para el mensaje html 
+    una para el mensaje version texto.
+    una columna para el estado del envio 
+    una columna para el error ocurrido (si este surgiera)
+  Con esta hoja se arma una matriz con la que se envian los emails
+  Esta presente la posibilidad de tener una vista previa del email antes del envio
+  Se envian los email con confirmacion del usuario
+  Se guarda la hoja como registro.
+
+  Dentro del script:
+  el nombre:
+      sp significa planilla (Spreadsheet)
+      ss significa hoja dentro de la planilla (Spreadsheet Sheet)
+*/
+// Variables para el uso de la fecha como nombre unico de las hojas creadas.
+
 var systemDate = Utilities.formatDate(new Date(), "GMT-3", "yyyyMMdd")
 var sendingDate = Utilities.formatDate(new Date(), "GMT-3", "yyyyMMdd \n HH:mm:ss")
 
 //=================================================================================
 function onOpen() {
+  /*
+  Esta funcion habilita la aparicion de nuevos menus en la 
+  interfaz grafica de la planilla. 
+  */
   //-------------------------------------------------------------------------------
   const ui = SpreadsheetApp.getUi()
 
@@ -13,22 +38,39 @@ function onOpen() {
 }
 //=================================================================================
 function message(text) {
+  /*
+  Esta funcion permite colocar mensajes en la 
+  interfaz grafica de la planilla.
+  */
   //-------------------------------------------------------------------------------
   SpreadsheetApp.getActiveSpreadsheet().toast(text)
 }
 //=================================================================================
 function messageDebugging(e) {
+  /*
+  Esta funcion permite colocar mensajes del error ocurrido, en la 
+  interfaz grafica de la planilla y en los logs de depuracion.
+  */
   //-------------------------------------------------------------------------------
   console.log('Mensaje de error : ' + e);
   message('Mensaje de error : ' + e);
 }
 //=================================================================================
 function spAccess() {
+  /*
+ Esta funcion permite el acceso a la planilla donde se encuentra
+  el script integrado.
+ */
   //-------------------------------------------------------------------------------
   return SpreadsheetApp.getActive()
 }
 //=================================================================================
 function ssAccess(ssName, ssIndex) {
+  /*
+ Esta funcion permite el acceso a una hoja de la planilla. la misma es accesible 
+ tanto por su nombre, como por us numero de indice en el total de hojas. 
+ Nota: un parametro estara lleno y el otro sera ´´
+ */
   //-------------------------------------------------------------------------------
   var sp = spAccess()
   try {
@@ -45,11 +87,15 @@ function ssAccess(ssName, ssIndex) {
     }
   }
   catch (e) {
-    messageDebugging()
+    messageDebugging(e)
   }
 }
 //=================================================================================
 function dataReading(ssName, ssIndex) {
+  /*
+ Esta funcion permite armar una matriz con los datos dentro de 
+ una de las hojas de la planilla.
+ */
   //--------------------------------------------------------------------------------
   var ss = ssAccess(ssName, ssIndex)
   try {
@@ -74,10 +120,16 @@ function dataReading(ssName, ssIndex) {
 }
 //=================================================================================
 function closedMonth() {
+  /*
+ Esta funcion devuelve el nombre del mes a facturar (mes Cerrado)
+ Tiene en cuenta el numero de dia actual:
+ Obtiene el MES ANTERIOR si esta antes del dia 20 incluido.
+ Obtiene el MES EN CURSO para los dias posteriores al 20 de cada mes, .
+ */
   //-------------------------------------------------------------------------------
-  var dateToday = new Date()
-  var currentMonth = dateToday.getUTCMonth()
-  var currentDay = dateToday.getUTCDate()
+  var dateToday = new Date() // Fecha completa
+  var currentMonth = dateToday.getUTCMonth()  // Mes Actual (numero del 1 al 12 )
+  var currentDay = dateToday.getUTCDate() // Dia del mes actual
   var months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
     'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTRUBRE', 'NOVIEMBRE', 'DICIEMBRE']
 
@@ -92,16 +144,19 @@ function closedMonth() {
 }
 //=================================================================================
 function reportBuilding() {
+  /*
+ Esta funcion construye la hoja de registro nombrada con la fecha del sistema.
+ */
   //-------------------------------------------------------------------------------
-  var report = []
-  var sp = spAccess()
-  var ssValues = dataReading('Docentes', '')
-  var ssHeaders = ssValues.shift()
+  var report = [] // inicializa la matriz para los datos de la hoja de registro.
+  var sp = spAccess() // Acceso a la planilla
+  var ssValues = dataReading('Docentes', '') // matriz con datos de la hoja 'Docentes'
+  var ssHeaders = ssValues.shift() // separa los encabezados de la matriz anterior
   var mesCerrado = closedMonth()
 
-  var lastColIndex = ssValues[0].length - 1
-  var re = new RegExp(mesCerrado, "i")
-  var monthInToHeader = ssHeaders[lastColIndex].search(re)
+  var lastColIndex = ssValues[0].length - 1 // indice de la ultima columna
+  var re = new RegExp(mesCerrado, "i") // patron para reconocer el mes cerrado
+  var monthInToHeader = ssHeaders[lastColIndex].search(re) // devuelve -1 si falso
 
   //debugg console.log('ssHeaders : ' + ssHeaders)
   //debugg console.log('ssValues : ' + ssValues)
@@ -109,31 +164,35 @@ function reportBuilding() {
 
   //debugg console.log('mesCerrado : ' + mesCerrado)
 
-  var ssTemplateValues = dataReading('Plantillas', '')
-  var textMessage = ssTemplateValues[1][1]
-  var htmlMessage = ssTemplateValues[2][1]
+  var ssTemplateValues = dataReading('Plantillas', '') // matriz con datos de la hoja 'Docentes'
+  var textMessage = ssTemplateValues[1][1] // variable con la plantilla del mensaje de texto
+  var htmlMessage = ssTemplateValues[2][1] // variable con la plantilla del mensaje html
 
-  // DATA ITERATION
+  // Ingreso en la matriz de los encabezados
   report.push(['NOMBRE', 'APELLIDO', 'E-MAIL', 'IMPORTE', 'MENSAJE-TEXTO', 'MENSAJE-HTML'])
 
+  // DATA ITERATION
   for (let i = 0; i < ssValues.length; i++) {
 
     //debugg console.log('ssValues[0].length : ' + ssValues[0].length + ' , value of i = ' + i)
 
 
-    var firstName = ssValues[i][0]
-    var lastName = ssValues[i][1]
-    var email = ssValues[i][2]
-    var amount = ssValues[i][lastColIndex] // getLastColumn
-    var giveName = firstName.replace(/(^.*) (.*)$/, "$1") // only one name of firstName
+    var firstName = ssValues[i][0] // variable con los nombres de la persona
+    var lastName = ssValues[i][1] // variable con apellido de la persona
+    var email = ssValues[i][2] // variable con el email de la persona
+    var amount = ssValues[i][lastColIndex] // variable con el importe (ultima columna)
+    var giveName = firstName.replace(/(^.*) (.*)$/, "$1") // variable con el primero de los nombres
 
     //debugg console.log('coincidencia re del mes cerrado en el encabezado de importes: '+monthInToHeader)
 
-    var ccemail = ''
-    var new_subject = ''
+    var ccemail = '' // variable con emails para copia carbon (cc)
+    var new_subject = '' // variable con el asunto del email
     var body = textMessage
     var htmlBody = htmlMessage
 
+    /* Busqueda de caracteres dentro de la plantilla de mensaje de texto
+    y reemplazo por el valor de la variable de igual nombre
+    */
     var body = body.replace('{{lastName}}', lastName.toUpperCase())
       .replace('{{firstName}}', firstName.toUpperCase())
       .replace('{{giveName}}', giveName)
@@ -146,6 +205,9 @@ function reportBuilding() {
         .format(amount))
       .replace('{{mesCerrado}}', mesCerrado)
 
+    /* Busqueda de caracteres dentro de la plantilla de mensaje html
+  y reemplazo por el valor de la variable de igual nombre
+  */
     var htmlBody = htmlBody.replace('{{lastName}}', lastName.toUpperCase())
       .replace('{{firstName}}', firstName.toUpperCase())
       .replace('{{giveName}}', giveName)
@@ -180,6 +242,9 @@ function reportBuilding() {
 
 //=================================================================================
 function emailPreview() {
+  /*
+ Esta funcion permite una VISTA PREVIA de la version html del email.
+ */
   //-------------------------------------------------------------------------------
   try {
     var ss = ssAccess(systemDate, '')
@@ -209,6 +274,9 @@ function emailPreview() {
 }
 //=================================================================================
 function listend() {
+  /*
+ Esta funcion realiza el envio de los emails.
+ */
   //-------------------------------------------------------------------------------
   //var body = ssTemplateValues[1][1].replace(/\\n/g, "\n")
   /*
