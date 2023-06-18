@@ -2,7 +2,13 @@
 Notas generales: 
   Este escript trabaja sobre una hojas de calculo actualizada manualmente.
   Luego se procesa esta informacion cargando una hoja de registro.
-  Está presente la posibilidad de tener una vista previa del email antes del envio
+  Se agregan 
+    una columna para el mensaje html 
+    una para el mensaje version texto.
+    una columna para el estado del envio 
+    una columna para el error ocurrido (si este surgiera)
+  Con esta hoja se arma una matriz con la que se envian los emails
+  Esta presente la posibilidad de tener una vista previa del email antes del envio
   Se envian los email con confirmacion del usuario
   Se guarda la hoja como registro.
 
@@ -113,6 +119,30 @@ function dataReading(ssName, ssIndex) {
   return ssValues
 }
 //=================================================================================
+function closedMonth() {
+  /*
+ Esta funcion devuelve el nombre del mes a facturar (mes Cerrado)
+ Tiene en cuenta el numero de dia actual:
+ Obtiene el MES ANTERIOR si esta antes del dia 20 incluido.
+ Obtiene el MES EN CURSO para los dias posteriores al 20 de cada mes, .
+ */
+  //-------------------------------------------------------------------------------
+  var dateToday = new Date() // Fecha completa
+  var currentMonth = dateToday.getUTCMonth()  // Mes Actual (numero del 1 al 12 )
+  var currentDay = dateToday.getUTCDate() // Dia del mes actual
+  var months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+    'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTRUBRE', 'NOVIEMBRE', 'DICIEMBRE']
+
+  if (currentDay <= 20) {
+    var mesCerrado = months[currentMonth - 1]
+  } else {
+    var mesCerrado = months(currentMonth)
+  }
+  //debugg console.log('mesCerrado : ' + mesCerrado + '\nmesEnCurso : ' + months[currentMonth])
+
+  return mesCerrado
+}
+//=================================================================================
 function starting() {
   /*
   Esta funcion lanza dos funciones para recoger los datos y enviarlos a las hojas 
@@ -129,7 +159,18 @@ function reportBuilding() {
   var report = [] // inicializa la matriz para los datos de la hoja de registro.
   var sp = spAccess() // Acceso a la planilla
   var roles = ['Docentes', 'Coordinadores']
+  //var mesCerrado = closedMonth()
 
+  //debugg console.log('ssHeaders : ' + ssHeaders)
+  //debugg console.log('ssValues : ' + ssValues)
+
+
+  //debugg console.log('mesCerrado : ' + mesCerrado)
+  /*
+    var ssTemplateValues = dataReading('Plantillas', '') // matriz con datos de la hoja 'Docentes'
+    var textMessage = ssTemplateValues[1][1] // variable con la plantilla del mensaje de texto
+    var htmlMessage = ssTemplateValues[2][1] // variable con la plantilla del mensaje html
+  */
   // Ingreso en la matriz de los encabezados
   report.push(['NOMBRE', 'APELLIDO', 'E-MAIL', 'IMPORTE', 'MENSAJE-TEXTO', 'MENSAJE-HTML', 'ROL'])
 
@@ -138,7 +179,10 @@ function reportBuilding() {
     var ssValues = dataReading(roles[j], '') // matriz con datos de la hoja dentro de la matriz roles.
     var ssHeaders = ssValues.shift() // separa los encabezados de la matriz anterior
     var lastColIndex = ssValues[0].length - 1 // indice de la ultima columna
-
+    /*
+    var re = new RegExp(mesCerrado, "i") // patron para reconocer el mes cerrado
+    var monthInToHeader = ssHeaders[lastColIndex].search(re) // devuelve -1 si falso
+*/
     // DATA ITERATION
     for (let i = 0; i < ssValues.length; i++) {
 
@@ -163,12 +207,50 @@ function reportBuilding() {
       //var giveName = name.replace(/(^.*) (.*)$/, "$1") // variable con el primero de los nombres
       var ultimo_mes = ssHeaders[lastColIndex].charAt(0).toUpperCase() + ssHeaders[lastColIndex].slice(1);
 
+      //debugg console.log('coincidencia re del mes cerrado en el encabezado de importes: '+monthInToHeader)
+      /*
+            var ccemail = '' // variable con emails para copia carbon (cc)
+            var new_subject = '' // variable con el asunto del email
+            var body = textMessage
+            var htmlBody = htmlMessage
+      */
+      /* Busqueda de caracteres dentro de la plantilla de mensaje de texto
+      y reemplazo por el valor de la variable de igual nombre
+      */
       var codigo = base_html(name, surname, ultimo_mes, importe);
       var body = base_text(name, surname, ultimo_mes, importe);
 
-
+      /*var body = body.replace('{{surname}}', surname.toUpperCase())
+      .replace('{{name}}', name.toUpperCase())
+      .replace('{{giveName}}', giveName)
+      .replace('{{importe}}', new Intl.NumberFormat('es-AR',
+        {
+          style: 'currency',
+          currency: 'ARS',
+          maximumFractionDigits: 0
+        })
+        .format(importe))
+      .replace('{{mesCerrado}}', mesCerrado)
+*/
+      /* Busqueda de caracteres dentro de la plantilla de mensaje html
+      y reemplazo por el valor de la variable de igual nombre
+      
+      var htmlBody = htmlBody.replace('{{surname}}', surname.toUpperCase())
+        .replace('{{name}}', name.toUpperCase())
+        .replace('{{giveName}}', giveName)
+        .replace('{{importe}}', new Intl.NumberFormat('es-AR',
+          {
+            style: 'currency',
+            currency: 'ARS',
+            maximumFractionDigits: 0
+          })
+          .format(importe))
+        .replace('{{mesCerrado}}', mesCerrado)
+*/
       //debugg console.log(body)
       console.log(body)
+      //var emailVerification, sending, error
+      // TEXT MESSAGE
       // armado de la fila de datos con las variables, para la matriz 'report'
       var reportRow = [name, surname, email, importe, body, codigo, rol]
       report.push(reportRow)// Carga de la fila a la matriz.
@@ -177,7 +259,7 @@ function reportBuilding() {
   }
   // Si la hoja de registro no existe, la crea en el indice numero 5, como oculta.
   if (!ssAccess(systemDate, '')) {
-    sp.insertSheet(systemDate, 4).hideSheet()
+    sp.insertSheet(systemDate, 5).hideSheet()
   } else {
     // Si la hoja de registro ya existe, la limpia de datos viejos.
     ssAccess(systemDate, '').clearContents()
@@ -240,9 +322,8 @@ function enviar_mail() {
 
     SpreadsheetApp.getUi().alert('El envio de E-mails ha\nCOMENZADO')
 
-    // creacion de planilla para verificacion de direcciones de email.
-    var spTestId = SpreadsheetApp.create('ssTest', 1, 1).getId()
-    var spEmailTest = SpreadsheetApp.openById(spTestId)
+    var ssId = SpreadsheetApp.create('ssTest', 1, 1).getId()
+    var ss = SpreadsheetApp.openById(ssId)
 
     var report = [];
     var envios = [];
@@ -282,7 +363,7 @@ function enviar_mail() {
           var subject = "Facturacion de Honorarios " + ultimo_mes + ' - ' + name + ' ' + surname;
 
           try {
-            spEmailTest.addViewer(email) // linea de verificacion del email, si falla , no envia.
+            ss.addViewer(email)
             MailApp.sendEmail(email, subject, body, { htmlBody: codigo });
             var envio = 'Exitoso'
           }
@@ -297,8 +378,7 @@ function enviar_mail() {
       }
     }
 
-    // eliminacion de planilla para verificacion de direcciones de email.
-    DriveApp.getFileById(spTestId).setTrashed(true)
+    DriveApp.getFileById(ssId).setTrashed(true)
 
     if (!ssAccess(systemDate, '')) {
       // en caso de que la planilla log no exista la crea
