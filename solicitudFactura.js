@@ -15,7 +15,8 @@ Notas generales:
 
 var systemDate = Utilities.formatDate(new Date(), "GMT-3", "yyyyMMdd")
 var sendingDate = Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm:ss")
-var sendingDate2Lines = Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy \n HH:mm:ss")
+var sendingDate2Lines = Utilities
+  .formatDate(new Date(), "GMT-3", "dd/MM/yyyy \n HH:mm:ss")
 
 //=================================================================================
 function onOpen() {
@@ -26,7 +27,7 @@ function onOpen() {
   //-------------------------------------------------------------------------------
   SpreadsheetApp.getUi()
     .createMenu('EMAIL')
-    .addItem('INICIAR', 'starting')
+    .addItem('ACTUALIZAR', 'starting')
     .addItem('ENVIAR', 'enviar_mail')
     .addToUi();
 }
@@ -138,6 +139,7 @@ function reportBuilding() {
   var report = [] // inicializa la matriz para los datos de la hoja de registro.
   var sp = spAccess() // Acceso a la planilla
   var roles = ['Docentes', 'Coordinadores']
+  var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
   // Ingreso en la matriz de los encabezados
   report.push(['NOMBRE', 'APELLIDO', 'E-MAIL', 'IMPORTE', 'MENSAJE-TEXTO', 'MENSAJE-HTML', 'ROL'])
@@ -170,8 +172,16 @@ function reportBuilding() {
         importe = importe.slice(1);
       }
       //var giveName = name.replace(/(^.*) (.*)$/, "$1") // variable con el primero de los nombres
-      var ultimo_mes = ssHeaders[lastColIndex].charAt(0).toUpperCase() + ssHeaders[lastColIndex].slice(1);
-
+      //var ultimo_mes = ssHeaders[lastColIndex].charAt(0).toUpperCase() + ssHeaders[lastColIndex].slice(1);
+      for (let i = 0; i < meses.length; i++) {
+        var re = meses[i]
+        var regex = new RegExp(re, "i")
+        var result = ssHeaders[lastColIndex].search(regex)
+        if (result != -1) {
+          var ultimo_mes = meses[i]
+          break
+        }
+      }
       var codigo = base_html(name, surname, ultimo_mes, importe);
       var body = base_text(name, surname, ultimo_mes, importe);
 
@@ -266,7 +276,7 @@ function enviar_mail() {
 
       sidebarAutoClose()
 
-      var response = SpreadsheetApp.getUi().alert('ATENCION !\n\nEsta a punto de enviar : \n\n   ' + [dataReading(systemDate, '').length - 1] + ' emails.\nEsta acción no puede ser deshecha.\n\n¿ Desea continuar ?', ui.ButtonSet.YES_NO);
+      var response = SpreadsheetApp.getUi().alert('ATENCION !!\nEsta acción no puede ser deshecha.\n\nEsta a punto de enviar : \n\n   ' + [dataReading(systemDate, '').length - 1] + ' E-mails.\n\n¿ Desea continuar ?', ui.ButtonSet.YES_NO);
 
       if (response == ui.Button.NO) {
         message('El envio de E-mails se ha\nCANCELADO');
@@ -283,8 +293,8 @@ function enviar_mail() {
 
         var report = [];
         var envios = [];
-        envios.push(['Envio\nÚltima Actualización:\n' + sendingDate])
         var hoja = ["Docentes", "Coordinadores"];
+        var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre']
         report.push(['NOMBRE', 'APELLIDO', 'E-MAIL', "IMPORTE", 'MENSAJE-TEXTO', 'ENVIO', 'MENSAJE-HTML']);
         // report.push([name, surname, importe, body, envio, email, codigo]);
 
@@ -292,8 +302,16 @@ function enviar_mail() {
           var data = dataReading(hoja[x], "");
           var ssHeaders = data.shift();
           var lastColIndex = data[0].length - 1;
-          var ultimo_mes = ssHeaders[lastColIndex].charAt(0).toUpperCase() + ssHeaders[lastColIndex].slice(1);
-
+          //var ultimo_mes = ssHeaders[lastColIndex].charAt(0).toUpperCase() + ssHeaders[lastColIndex].slice(1);
+          for (let i = 0; i < meses.length; i++) {
+            var re = meses[i]
+            var regex = new RegExp(re, "i")
+            var result = ssHeaders[lastColIndex].search(regex)
+            if (result != -1) {
+              var ultimo_mes = meses[i]
+              break
+            }
+          }
           for (var i = 0; i < data.length; i++) { // Iteracion por los datos de cada hoja.
             var row = data[i];
             var name = row[0];
@@ -334,6 +352,10 @@ function enviar_mail() {
             }
           }
         }
+        var timeStamp = ssAccess('Informe', '').getRange(1, 7).getValue().toString()
+
+        var timeStamp = timeStamp + Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm:ss")
+        envios.unshift([timeStamp])
 
         // eliminacion de planilla para verificacion de direcciones de email.
         DriveApp.getFileById(spTestId).setTrashed(true)
@@ -342,11 +364,11 @@ function enviar_mail() {
           // en caso de que la planilla log no exista la crea
           spAccess().insertSheet(systemDate).hideSheet();
         }
-        // borramos el contenido de toda la planilla log correspondiente a la fecha actual y insertamos los datos
 
         var docentesLog = ssAccess('Docentes', '').getDataRange().getValues();
         var coordinadoresLog = ssAccess('Coordinadores', '').getDataRange().getValues();
 
+        // borramos el contenido de toda la planilla log correspondiente a la fecha actual y insertamos los datos
 
         ssAccess(systemDate, '').clearContents();
 
@@ -372,20 +394,22 @@ function generar_informe() {
  la funcion "generar_informe" busca generar una hoja dentro de la planilla para que puedan tener informacion de los docentes y coordinadores mas al alcance
  */
   //-------------------------------------------------------------------------------
-  var mes = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE']
+  var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre']
   var report = [];
   var hoja = ["Docentes", "Coordinadores"];
   //report.push(['Nombre', 'Apellido', 'Email', "Rol", "Mes", "Honorarios", "Envio", "Última Actualización", sendingDate])
-  report.push(['Nombre', 'Apellido', "Rol", "Mes", "Honorarios", '  Email  ', "Envio\nÚltima Actualización:\n" + sendingDate])
+  report.push(['Nombre', 'Apellido', "Rol", "Mes", "Honorarios", '  Email  ', 'Actualización :  ' + sendingDate + '\nEnvio :          '])
   for (var x = 0; x < hoja.length; x++) {
-    var data = dataReading(hoja[x], "");
+    var data = dataReading(hoja[x], '');
     var ssHeaders = data.shift();
     var lastColIndex = data[0].length - 1;
     //    var ultimo_mes = ssHeaders[lastColIndex].charAt(0).toUpperCase() + ssHeaders[lastColIndex].slice(1);
-    for (elMes in mes) {
-      if (ssHeaders[lastColIndex].toString().search(/${mes}/i) != -1) {
-        var ultimo_mes = elMes
-        console.log(ultimo_mes)
+    for (let i = 0; i < meses.length; i++) {
+      var re = meses[i]
+      var regex = new RegExp(re, "i")
+      var result = ssHeaders[lastColIndex].search(regex)
+      if (result != -1) {
+        var ultimo_mes = meses[i]
         break
       }
     }
