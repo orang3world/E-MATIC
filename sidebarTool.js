@@ -27,7 +27,7 @@ function emailPreview() {
       var ss = ssAccess(systemDate, '')
       var rowSelection = ss.getSelection().getCurrentCell().getRow()
       //console.log('Current Cell: ' + rowSelection);
-      var htmlList = ss.getRange(1, 6, ss.getLastRow() - 1, 1).getValues()
+      var htmlList = ss.getRange(1, 6, ss.getLastRow(), 1).getValues()
       //console.log('htmlList : ' + htmlList[rowSelection])
       var html = HtmlService.createHtmlOutput("'" + htmlList[rowSelection - 1] + "'")
         .setTitle('E-MAIL : VISTA PREVIA')

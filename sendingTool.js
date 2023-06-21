@@ -9,17 +9,18 @@ function enviar_mail() {
   //-------------------------------------------------------------------------------
   var ui = SpreadsheetApp.getUi()
 
-  try {
 
-    if (!ssAccess(systemDate, '')) {
-      messageAlert('Estos datos ya fueron enviados y archivados:\n Actualice para un nuevo Envio')
+
+  if (!ssAccess(systemDate, '')) {
+    messageAlert('Estos datos ya fueron enviados y archivados:\n Actualice para un nuevo Envio')
+
+    sidebarAutoClose()
+
+  } else {
+
+    try {
 
       sidebarAutoClose()
-
-    } else {
-
-      sidebarAutoClose()
-
 
       //-------------------------------------------------------------------------------
       var sessionEmail = Session.getActiveUser().getEmail();
@@ -34,6 +35,8 @@ function enviar_mail() {
       } else if (responseMode == ui.Button.YES) {
         var sessionMode = 'PRUEBA'
 
+      } else {
+        return
       }
       //-------------------------------------------------------------------------------
       var response = SpreadsheetApp
@@ -103,19 +106,28 @@ function enviar_mail() {
 
                 if (sessionMode == 'PRUEBA') {
                   var email = sessionEmail
+
                   spEmailTest.addViewer(email) // linea de verificacion del email, si falla , no envia.
 
                   MailApp
                     .sendEmail(email, subject, body, { htmlBody: codigo });
 
-                } else {
+                  var envio = 'Exitoso'
+
+                } else if (sessionMode == 'REAL') {
 
                   spEmailTest.addViewer(email) // linea de verificacion del email, si falla , no envia.
+
                   // La siguiente linea envia emails en el modo REAL, usa las direcciones reales.
-                  //MailApp.sendEmail(email, subject, body, { htmlBody: codigo });
+
+                  //MailApp.sendEmail(email, subject, body, { htmlBody: codigo }); 
+
+                  var envio = 'Exitoso'
+
+                } else {
+                  return
                 }
 
-                var envio = 'Exitoso'
               }
               catch (e) {
                 var envio = e
@@ -154,11 +166,13 @@ function enviar_mail() {
         ssAccess(systemDate, '').setName(sendingDate2Lines)
 
         ssAccess('Informe', '').getRange(1, 7, envios.length, 1).setValues(envios);
+      } else {
+        return
       }
       message('El envio de E-mails ha\nCONCLUIDO')
     }
-  }
-  catch (e) {
-    message(e)
+    catch (e) {
+      message(e)
+    }
   }
 }

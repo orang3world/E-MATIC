@@ -39,6 +39,7 @@ function starting() {
   'Informe' y la hoja de registro.
   */
   //-------------------------------------------------------------------------------
+  sidebarAutoClose()
   reportBuilding();
   generar_informe();
 }
