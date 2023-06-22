@@ -102,20 +102,18 @@ function enviar_mail() {
               // si el caracter ocn el indice 0 de la variable importe es distinto a 0 enviamos el mail
               var subject = "Facturacion de Honorarios " + ultimo_mes + ' - ' + name + ' ' + surname;
 
-              try {
 
-                if (sessionMode == 'PRUEBA') {
-                  var email = sessionEmail
 
-                  spEmailTest.addViewer(email) // linea de verificacion del email, si falla , no envia.
+              if (sessionMode == 'PRUEBA') {
+                var email = sessionEmail
 
-                  MailApp
-                    .sendEmail(email, subject, body, { htmlBody: codigo });
+                MailApp
+                  .sendEmail(email, subject, body, { htmlBody: codigo });
 
-                  var envio = 'Exitoso'
+                var envio = 'Exitoso'
 
-                } else if (sessionMode == 'REAL') {
-
+              } else if (sessionMode == 'REAL') {
+                try {
                   spEmailTest.addViewer(email) // linea de verificacion del email, si falla , no envia.
 
                   // La siguiente linea envia emails en el modo REAL, usa las direcciones reales.
@@ -123,14 +121,53 @@ function enviar_mail() {
                   //MailApp.sendEmail(email, subject, body, { htmlBody: codigo }); 
 
                   var envio = 'Exitoso'
-
-                } else {
-                  return
                 }
+                catch (e) { //si el email en la celda no verifica, revisa si tiene comas.
+                  var email = email.replace(/\s/g, ",") // quitar espacios
+                  var email = email.replace(/\//g, ",") // cambiar "/" por ","
+                  var email = email.replace(/;/g, ",") // cambiar "/" por ","
+                  var email = email.replace(/:/g, ",") // cambiar "/" por ","
+                  var email = email.replace(/,{2,}/g, ",") // cambiar varias comas juntas por ","
 
-              }
-              catch (e) {
-                var envio = e
+                  while (email.search(/,/) != -1) { // busqueda de comas (detalle: busca de derecha a izq.)
+                    console.log('Se encontro una coma en el email')
+                    var subEmail = email.replace(/(.*),(.*)/, "$2")
+                    var email = email.replace(/(.*),(.*)/, "$1")
+
+                    console.log('subEmail : ' + subEmail)
+                    console.log('email restante : ' + email)
+
+                    try { // toma el primer email 'hijo'
+                      spEmailTest.addViewer(subEmail) // linea de verificacion del email, si falla , no envia.
+
+                      // La siguiente linea envia emails en el modo REAL, usa las direcciones reales.
+                      //MailApp.sendEmail(subEmail, subject, body, { htmlBody: codigo }); 
+
+                      var envio = 'Exitoso'
+
+                      report.push([name, surname, subEmail, importe, body, envio, codigo]);
+                      envios.push([envio])
+                    }
+                    catch (e) { // si no verifica, imprime el error.
+                      var envio = e
+                      report.push([name, surname, subEmail, importe, body, envio, codigo]);
+                      envios.push([envio])
+                    }
+                  }
+                  try { // queda el ultimo email 'hijo' que se llama email
+                    spEmailTest.addViewer(email) // linea de verificacion del email, si falla , no envia.
+
+                    // La siguiente linea envia emails en el modo REAL, usa las direcciones reales.
+                    //MailApp.sendEmail(email, subject, body, { htmlBody: codigo }); 
+
+                    var envio = 'Exitoso'
+                  }
+                  catch (e) {
+                    var envio = e
+                  }
+                }
+              } else {
+                return
               }
 
               report.push([name, surname, email, importe, body, envio, codigo]);
@@ -155,7 +192,8 @@ function enviar_mail() {
         var docentesLog = ssAccess('Docentes', '').getDataRange().getValues();
         var coordinadoresLog = ssAccess('Coordinadores', '').getDataRange().getValues();
 
-        // borramos el contenido de toda la planilla log correspondiente a la fecha actual y insertamos los datos
+        // borramos el contenido de toda la planilla log
+        // correspondiente a la fecha actual e insertamos los datos.
 
         ssAccess(systemDate, '').clearContents();
 

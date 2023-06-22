@@ -64,8 +64,6 @@ function reportBuilding() {
     // DATA ITERATION
     for (let i = 0; i < ssValues.length; i++) {
 
-      //debugg console.log('ssValues[0].length : ' + ssValues[0].length + ' , value of i = ' + i)
-
       var rol = roles[j]
       var name = ssValues[i][0] // variable con los nombres de la persona
       var surname = ssValues[i][1] // variable con apellido de la persona
@@ -95,10 +93,25 @@ function reportBuilding() {
       }
       var codigo = base_html(name, surname, ultimo_mes, importe);
       var body = base_text(name, surname, ultimo_mes, importe);
+     
+      var email = email.replace(/\s/g, ",") // quitar espacios
+      var email = email.replace(/\//g, ",") // cambiar "/" por ","
+      var email = email.replace(/;/g, ",") // cambiar "/" por ","
+      var email = email.replace(/:/g, ",") // cambiar "/" por ","
+      var email = email.replace(/,{2,}/g, ",") // cambiar varias comas juntas por ","
 
+      while (email.search(/,/) != -1) { // busqueda de comas (detalle: busca de derecha a izq.)
+        console.log('Se encontro una coma en el email')
+        var subEmail = email.replace(/(.*),(.*)/, "$2")
+        var email = email.replace(/(.*),(.*)/, "$1")
+        console.log('subEmail : ' + subEmail)
+        console.log('email restante : ' + email)
+        
+        var reportRow = [name, surname, subEmail, importe, body, codigo, rol]
+        report.push(reportRow)// Carga de la fila a la matriz.
 
-      //debugg console.log(body)
-      console.log(body)
+      }
+
       // armado de la fila de datos con las variables, para la matriz 'report'
       var reportRow = [name, surname, email, importe, body, codigo, rol]
       report.push(reportRow)// Carga de la fila a la matriz.
@@ -137,13 +150,14 @@ function generar_informe() {
   var report = [];
   var hoja = ["Docentes", "Coordinadores"];
   report.push(['Nombre', 'Apellido', "Rol", "Mes", "Honorarios", '  Email  ', 'Actualización :  ' + sendingDate + '\nEnvio :          '])
+
   for (var x = 0; x < hoja.length; x++) {
     var data = dataReading(hoja[x], '');
     var ssHeaders = data.shift();
     var lastColIndex = data[0].length - 1;
 
     //    var ultimo_mes = ssHeaders[lastColIndex].charAt(0).toUpperCase() + ssHeaders[lastColIndex].slice(1);
-    
+
     for (let i = 0; i < meses.length; i++) {
       var re = meses[i]
       var regex = new RegExp(re, "i")
@@ -170,7 +184,21 @@ function generar_informe() {
       if (importe.charAt(0) == "$") {
         importe = importe.slice(1);
       }
-      //report.push([name, surname, email, hoja[x], ultimo_mes, importe, "", "", ""]);
+      var email = email.replace(/\s/g, ",") // quitar espacios
+      var email = email.replace(/\//g, ",") // cambiar "/" por ","
+      var email = email.replace(/;/g, ",") // cambiar "/" por ","
+      var email = email.replace(/:/g, ",") // cambiar "/" por ","
+      var email = email.replace(/,{2,}/g, ",") // cambiar varias comas juntas por ","
+
+      while (email.search(/,/) != -1) { // busqueda de comas (detalle: busca de derecha a izq.)
+        console.log('Se encontro una coma en el email')
+        var subEmail = email.replace(/(.*),(.*)/, "$2")
+        var email = email.replace(/(.*),(.*)/, "$1")
+        console.log('subEmail : ' + subEmail)
+        console.log('email restante : ' + email)
+
+        report.push([name, surname, hoja[x], ultimo_mes, importe, subEmail, ""]);
+      }
       report.push([name, surname, hoja[x], ultimo_mes, importe, email, ""]);
     }
   }
