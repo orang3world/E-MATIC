@@ -93,7 +93,9 @@ function reportBuilding() {
       }
       var codigo = base_html(name, surname, ultimo_mes, importe);
       var body = base_text(name, surname, ultimo_mes, importe);
-     
+
+      //si el email en la celda no verifica, limpiarlo y buscar comas
+      var email = email.replace(/\n/g, ",") // quitar espacios
       var email = email.replace(/\s/g, ",") // quitar espacios
       var email = email.replace(/\//g, ",") // cambiar "/" por ","
       var email = email.replace(/;/g, ",") // cambiar "/" por ","
@@ -106,7 +108,7 @@ function reportBuilding() {
         var email = email.replace(/(.*),(.*)/, "$1")
         console.log('subEmail : ' + subEmail)
         console.log('email restante : ' + email)
-        
+
         var reportRow = [name, surname, subEmail, importe, body, codigo, rol]
         report.push(reportRow)// Carga de la fila a la matriz.
 
@@ -184,6 +186,8 @@ function generar_informe() {
       if (importe.charAt(0) == "$") {
         importe = importe.slice(1);
       }
+      //si el email en la celda no verifica, limpiarlo y buscar comas
+      var email = email.replace(/\n/g, ",") // quitar espacios
       var email = email.replace(/\s/g, ",") // quitar espacios
       var email = email.replace(/\//g, ",") // cambiar "/" por ","
       var email = email.replace(/;/g, ",") // cambiar "/" por ","
